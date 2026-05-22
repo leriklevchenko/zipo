@@ -22,6 +22,34 @@ mvn clean package
 java -jar target/*.jar
 ```
 
+## Postman
+Импортируйте `postman/ziovpo.postman_collection.json` в Postman.
+
+1. Установите переменную `base_url`:
+   - `https://localhost:8080`
+2. Отключите проверку SSL, если используется самоподписанный сертификат.
+3. Выполните `POST /api/auth/login` с JSON:
+   ```json
+   {
+     "username": "user@example.com",
+     "password": "yourpassword",
+     "deviceId": "postman"
+   }
+   ```
+4. Скопируйте `accessToken` из ответа и добавьте заголовок:
+   - `Authorization: Bearer <accessToken>`
+5. Выполните защищённые запросы, например `GET /whoami`.
+
+Доступные запросы в коллекции:
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `GET /api/public/ping`
+- `GET /whoami`
+- `POST /api/user/license/create`
+- `POST /api/user/license/activate`
+- `GET /api/user/license/check`
+- `POST /api/user/license/extend`
+
 ## Диаграммы
 - `docs/uml/class-diagram.puml`
 - `docs/erd/er-diagram.puml`
