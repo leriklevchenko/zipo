@@ -3,12 +3,14 @@ spring:
     url: ${PG_URL}
     username: ${PG_USER}
     password: ${PG_PASS}
-sql:
-    init:
-      mode: always
-jpa:
+  jpa:
     hibernate:
       ddl-auto: none
+sql:
+  init:
+    mode: always
+jwt:
+  secret: ${JWT_SECRET}
 
 server:
   port: 8080

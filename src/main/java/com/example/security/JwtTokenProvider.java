@@ -5,6 +5,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -20,10 +21,9 @@ public class JwtTokenProvider {
     private final long accessTokenValidityMs = 15 * 60 * 1000L;          // 15 минут
     private final long refreshTokenValidityMs = 7L * 24 * 60 * 60 * 1000L; // 7 дней
 
-    public JwtTokenProvider() {
-        String secret = System.getenv("PG_SECRET_PASSWORD");
+    public JwtTokenProvider(@Value("${jwt.secret}") String secret) {
         if (secret == null || secret.isEmpty()) {
-            throw new IllegalStateException("Environment variable 'PG_SECRET_PASSWORD' is not set");
+            throw new IllegalStateException("Property 'jwt.secret' is not set");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
