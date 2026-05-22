@@ -1,5 +1,6 @@
 package com.example.security;
 
+import com.example.model.Ticket;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -12,6 +13,8 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Component
 public class JwtTokenProvider {
@@ -82,6 +85,25 @@ public class JwtTokenProvider {
 
     public String getRoleFromToken(String token) {
         return parseClaims(token).get("role", String.class);
+    }
+
+    public String createTicketSignature(Ticket ticket) {
+        Instant now = Instant.now();
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("serverDate", ticket.getServerDate().toEpochMilli());
+        claims.put("ticketLifetimeSeconds", ticket.getTicketLifetimeSeconds());
+        claims.put("activationDate", ticket.getActivationDate() != null ? ticket.getActivationDate().toEpochMilli() : null);
+        claims.put("expirationDate", ticket.getExpirationDate() != null ? ticket.getExpirationDate().toEpochMilli() : null);
+        claims.put("userId", ticket.getUserId());
+        claims.put("deviceId", ticket.getDeviceId());
+        claims.put("blocked", ticket.isBlocked());
+
+        return Jwts.builder()
+                .setSubject("ticket")
+                .setClaims(claims)
+                .setIssuedAt(Date.from(now))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
     }
 
     public long getAccessTokenValidityMs() {
