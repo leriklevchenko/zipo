@@ -89,6 +89,13 @@ alter table if exists licenses add column if not exists ending_date timestamp;
 alter table if exists licenses add column if not exists device_count integer;
 alter table if exists licenses add column if not exists description varchar(1000);
 
+alter table if exists licenses alter column user_id drop not null;
+alter table if exists licenses drop column if exists device_id;
+alter table if exists licenses drop column if exists created_at;
+alter table if exists licenses drop column if exists activated_at;
+alter table if exists licenses drop column if exists expires_at;
+alter table if exists licenses drop column if exists validity_days;
+
 create index if not exists idx_licenses_code on licenses(code);
 create index if not exists idx_licenses_user_product on licenses(user_id, product_id);
 create index if not exists idx_licenses_status on licenses(status);
