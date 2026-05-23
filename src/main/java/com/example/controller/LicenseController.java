@@ -5,12 +5,13 @@ import com.example.model.LicenseResponse;
 import com.example.model.TicketResponse;
 import com.example.service.LicenseService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.net.URI;
 
 @RestController
-@RequestMapping("/api/user/license")
+@RequestMapping("/api")
 public class LicenseController {
 
     private final LicenseService licenseService;
@@ -19,81 +20,119 @@ public class LicenseController {
         this.licenseService = licenseService;
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<LicenseResponse> create(@RequestBody CreateLicenseRequest request) {
-        License license = licenseService.createLicense(request.getUserId(), request.getDeviceId(), request.getValidityDays());
-        return ResponseEntity.ok(mapToResponse(license));
+    @PostMapping("/admin/licenses")
+    public ResponseEntity<LicenseResponse> create(@RequestBody CreateLicenseRequest request,
+                                                  Authentication authentication) {
+        License license = licenseService.createLicense(
+                request.getProductId(),
+                request.getTypeId(),
+                request.getOwnerId(),
+                request.getDeviceCount(),
+                request.getDescription(),
+                authentication.getName()
+        );
+        return ResponseEntity.created(URI.create("/api/admin/licenses/" + license.getId()))
+                .body(mapToResponse(license));
+    }
+
+    @PostMapping("/user/licenses/activate")
+    public ResponseEntity<TicketResponse> activate(@RequestBody ActivateLicenseRequest request,
+                                                   Authentication authentication) {
+        TicketResponse response = licenseService.activateLicense(
+                request.getActivationKey(),
+                request.getDeviceMac(),
+                request.getDeviceName(),
+                request.getTicketLifetimeSeconds(),
+                authentication.getName()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/user/licenses/renew")
+    public ResponseEntity<TicketResponse> renew(@RequestBody RenewLicenseRequest request,
+                                                Authentication authentication) {
+        TicketResponse response = licenseService.renewLicense(
+                request.getActivationKey(),
+                request.getTicketLifetimeSeconds(),
+                authentication.getName()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/user/licenses/check")
+    public ResponseEntity<TicketResponse> check(@RequestParam String deviceMac,
+                                                @RequestParam Long productId,
+                                                @RequestParam(defaultValue = "900") int ticketLifetimeSeconds,
+                                                Authentication authentication) {
+        TicketResponse response = licenseService.checkLicense(deviceMac, productId, ticketLifetimeSeconds, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 
     private LicenseResponse mapToResponse(License license) {
         LicenseResponse response = new LicenseResponse();
         response.setId(license.getId());
-        response.setUserId(license.getUser().getId());
-        response.setDeviceId(license.getDeviceId());
-        response.setCreatedAt(license.getCreatedAt());
-        response.setActivatedAt(license.getActivatedAt());
-        response.setExpiresAt(license.getExpiresAt());
-        response.setValidityDays(license.getValidityDays());
+        response.setCode(license.getCode());
+        response.setProductId(license.getProduct().getId());
+        response.setTypeId(license.getType().getId());
+        response.setOwnerId(license.getOwner().getId());
+        response.setUserId(license.getUser() == null ? null : license.getUser().getId());
+        response.setFirstActivationDate(license.getFirstActivationDate());
+        response.setEndingDate(license.getEndingDate());
+        response.setDeviceCount(license.getDeviceCount());
+        response.setDescription(license.getDescription());
         response.setStatus(license.getStatus());
         response.setBlocked(license.isBlocked());
         return response;
     }
 
-    @PostMapping("/activate")
-    public ResponseEntity<TicketResponse> activate(@RequestBody ActivateLicenseRequest request) {
-        TicketResponse response = licenseService.activateLicense(request.getLicenseId(), request.getTicketLifetimeSeconds());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/check")
-    public ResponseEntity<TicketResponse> check(@RequestParam UUID licenseId,
-                                                @RequestParam(defaultValue = "900") int ticketLifetimeSeconds) {
-        TicketResponse response = licenseService.checkLicense(licenseId, ticketLifetimeSeconds);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/extend")
-    public ResponseEntity<TicketResponse> extend(@RequestBody ExtendLicenseRequest request) {
-        TicketResponse response = licenseService.extendLicense(request.getLicenseId(), request.getAdditionalDays(), request.getTicketLifetimeSeconds());
-        return ResponseEntity.ok(response);
-    }
-
     public static class CreateLicenseRequest {
-        private Long userId;
-        private String deviceId;
-        private int validityDays;
+        private Long productId;
+        private Long typeId;
+        private Long ownerId;
+        private int deviceCount = 1;
+        private String description;
 
-        public Long getUserId() { return userId; }
-        public void setUserId(Long userId) { this.userId = userId; }
+        public Long getProductId() { return productId; }
+        public void setProductId(Long productId) { this.productId = productId; }
 
-        public String getDeviceId() { return deviceId; }
-        public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
+        public Long getTypeId() { return typeId; }
+        public void setTypeId(Long typeId) { this.typeId = typeId; }
 
-        public int getValidityDays() { return validityDays; }
-        public void setValidityDays(int validityDays) { this.validityDays = validityDays; }
+        public Long getOwnerId() { return ownerId; }
+        public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
+
+        public int getDeviceCount() { return deviceCount; }
+        public void setDeviceCount(int deviceCount) { this.deviceCount = deviceCount; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
     }
 
     public static class ActivateLicenseRequest {
-        private UUID licenseId;
+        private String activationKey;
+        private String deviceMac;
+        private String deviceName;
         private int ticketLifetimeSeconds = 900;
 
-        public UUID getLicenseId() { return licenseId; }
-        public void setLicenseId(UUID licenseId) { this.licenseId = licenseId; }
+        public String getActivationKey() { return activationKey; }
+        public void setActivationKey(String activationKey) { this.activationKey = activationKey; }
+
+        public String getDeviceMac() { return deviceMac; }
+        public void setDeviceMac(String deviceMac) { this.deviceMac = deviceMac; }
+
+        public String getDeviceName() { return deviceName; }
+        public void setDeviceName(String deviceName) { this.deviceName = deviceName; }
 
         public int getTicketLifetimeSeconds() { return ticketLifetimeSeconds; }
         public void setTicketLifetimeSeconds(int ticketLifetimeSeconds) { this.ticketLifetimeSeconds = ticketLifetimeSeconds; }
     }
 
-    public static class ExtendLicenseRequest {
-        private UUID licenseId;
-        private int additionalDays;
+    public static class RenewLicenseRequest {
+        private String activationKey;
         private int ticketLifetimeSeconds = 900;
 
-        public UUID getLicenseId() { return licenseId; }
-        public void setLicenseId(UUID licenseId) { this.licenseId = licenseId; }
-
-        public int getAdditionalDays() { return additionalDays; }
-        public void setAdditionalDays(int additionalDays) { this.additionalDays = additionalDays; }
+        public String getActivationKey() { return activationKey; }
+        public void setActivationKey(String activationKey) { this.activationKey = activationKey; }
 
         public int getTicketLifetimeSeconds() { return ticketLifetimeSeconds; }
         public void setTicketLifetimeSeconds(int ticketLifetimeSeconds) { this.ticketLifetimeSeconds = ticketLifetimeSeconds; }

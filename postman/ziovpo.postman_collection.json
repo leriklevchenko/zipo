@@ -42,13 +42,23 @@
       "type": "string"
     },
     {
-      "key": "validityDays",
-      "value": "30",
+      "key": "deviceMac",
+      "value": "AA:BB:CC:DD:EE:01",
       "type": "string"
     },
     {
-      "key": "additionalDays",
-      "value": "30",
+      "key": "productId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "licenseTypeId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "deviceCount",
+      "value": "2",
       "type": "string"
     },
     {
@@ -78,6 +88,11 @@
     },
     {
       "key": "licenseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "licenseCode",
       "value": "",
       "type": "string"
     },
@@ -382,18 +397,22 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('License created', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "  var json = pm.response.json();",
-                  "  pm.expect(json.id).to.be.a('string').and.not.empty;",
-                  "  pm.expect(json.userId).to.eql(Number(pm.collectionVariables.get('userId')));",
-                  "  pm.expect(json.deviceId).to.eql(pm.collectionVariables.get('deviceId'));",
-                  "});",
-                  "",
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('licenseId', json.id);",
-                  "}"
+	                  "pm.test('License created', function () {",
+	                  "  pm.response.to.have.status(201);",
+	                  "  var json = pm.response.json();",
+	                  "  pm.expect(json.id).to.be.a('string').and.not.empty;",
+	                  "  pm.expect(json.code).to.be.a('string').and.not.empty;",
+	                  "  pm.expect(json.ownerId).to.eql(Number(pm.collectionVariables.get('userId')));",
+	                  "  pm.expect(json.productId).to.eql(Number(pm.collectionVariables.get('productId')));",
+	                  "});",
+	                  "",
+	                  "var json = pm.response.json();",
+	                  "if (json.id) {",
+	                  "  pm.collectionVariables.set('licenseId', json.id);",
+	                  "}",
+	                  "if (json.code) {",
+	                  "  pm.collectionVariables.set('licenseCode', json.code);",
+	                  "}"
                 ]
               }
             }
@@ -405,14 +424,14 @@
                 "key": "Content-Type",
                 "value": "application/json"
               },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{access_token}}"
-              }
+	              {
+	                "key": "Authorization",
+	                "value": "Bearer {{admin_access_token}}"
+	              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": {{userId}},\n  \"deviceId\": \"{{deviceId}}\",\n  \"validityDays\": {{validityDays}}\n}",
+	              "raw": "{\n  \"productId\": {{productId}},\n  \"typeId\": {{licenseTypeId}},\n  \"ownerId\": {{userId}},\n  \"deviceCount\": {{deviceCount}},\n  \"description\": \"Postman license\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -420,15 +439,14 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/api/user/license/create",
+	              "raw": "{{base_url}}/api/admin/licenses",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
-                "user",
-                "license",
-                "create"
+	                "admin",
+	                "licenses"
               ]
             }
           }
@@ -447,7 +465,8 @@
                   "  pm.expect(json.ticket).to.be.an('object');",
                   "  pm.expect(json.signature).to.be.a('string').and.not.empty;",
                   "  pm.expect(json.ticket.userId).to.eql(Number(pm.collectionVariables.get('userId')));",
-                  "  pm.expect(json.ticket.deviceId).to.eql(pm.collectionVariables.get('deviceId'));",
+	                  "  pm.expect(json.ticket.licenseCode).to.eql(pm.collectionVariables.get('licenseCode'));",
+	                  "  pm.expect(json.ticket.deviceId).to.eql(pm.collectionVariables.get('deviceMac'));",
                   "});"
                 ]
               }
@@ -467,7 +486,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"licenseId\": \"{{licenseId}}\",\n  \"ticketLifetimeSeconds\": {{ticketLifetimeSeconds}}\n}",
+	              "raw": "{\n  \"activationKey\": \"{{licenseCode}}\",\n  \"deviceMac\": \"{{deviceMac}}\",\n  \"deviceName\": \"{{deviceId}}\",\n  \"ticketLifetimeSeconds\": {{ticketLifetimeSeconds}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -475,15 +494,15 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/api/user/license/activate",
+	              "raw": "{{base_url}}/api/user/licenses/activate",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
                 "user",
-                "license",
-                "activate"
+	                "licenses",
+	                "activate"
               ]
             }
           }
@@ -515,20 +534,24 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/user/license/check?licenseId={{licenseId}}&ticketLifetimeSeconds={{ticketLifetimeSeconds}}",
+	              "raw": "{{base_url}}/api/user/licenses/check?deviceMac={{deviceMac}}&productId={{productId}}&ticketLifetimeSeconds={{ticketLifetimeSeconds}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
                 "user",
-                "license",
-                "check"
+	                "licenses",
+	                "check"
               ],
               "query": [
                 {
-                  "key": "licenseId",
-                  "value": "{{licenseId}}"
+	                  "key": "deviceMac",
+	                  "value": "{{deviceMac}}"
+	                },
+	                {
+	                  "key": "productId",
+	                  "value": "{{productId}}"
                 },
                 {
                   "key": "ticketLifetimeSeconds",
@@ -539,14 +562,14 @@
           }
         },
         {
-          "name": "License - Extend",
+	          "name": "License - Renew",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('License extended and ticket returned', function () {",
+	                  "pm.test('License renewed and ticket returned', function () {",
                   "  pm.response.to.have.status(200);",
                   "  var json = pm.response.json();",
                   "  pm.expect(json.ticket).to.be.an('object');",
@@ -570,7 +593,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"licenseId\": \"{{licenseId}}\",\n  \"additionalDays\": {{additionalDays}},\n  \"ticketLifetimeSeconds\": {{ticketLifetimeSeconds}}\n}",
+	              "raw": "{\n  \"activationKey\": \"{{licenseCode}}\",\n  \"ticketLifetimeSeconds\": {{ticketLifetimeSeconds}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -578,15 +601,15 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/api/user/license/extend",
+	              "raw": "{{base_url}}/api/user/licenses/renew",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
                 "user",
-                "license",
-                "extend"
+	                "licenses",
+	                "renew"
               ]
             }
           }

@@ -8,6 +8,8 @@ public class Ticket {
     private long ticketLifetimeSeconds;
     private Instant activationDate;
     private Instant expirationDate;
+    private String licenseCode;
+    private Long productId;
     private Long userId;
     private String deviceId;
     private boolean blocked;
@@ -23,6 +25,12 @@ public class Ticket {
 
     public Instant getExpirationDate() { return expirationDate; }
     public void setExpirationDate(Instant expirationDate) { this.expirationDate = expirationDate; }
+
+    public String getLicenseCode() { return licenseCode; }
+    public void setLicenseCode(String licenseCode) { this.licenseCode = licenseCode; }
+
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

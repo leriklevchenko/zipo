@@ -1,129 +1,262 @@
 package com.example.service;
 
-import com.example.model.License;
-import com.example.model.LicenseStatus;
-import com.example.model.Ticket;
-import com.example.model.TicketResponse;
-import com.example.model.User;
+import com.example.model.*;
 import com.example.signature.DigitalSignatureService;
-import com.example.storage.LicenseRepository;
-import com.example.storage.UserRepository;
+import com.example.storage.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 @Service
 public class LicenseService {
 
+    private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     private final LicenseRepository licenseRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final LicenseTypeRepository licenseTypeRepository;
+    private final DeviceRepository deviceRepository;
+    private final DeviceLicenseRepository deviceLicenseRepository;
+    private final LicenseHistoryRepository licenseHistoryRepository;
     private final DigitalSignatureService digitalSignatureService;
 
     public LicenseService(LicenseRepository licenseRepository,
                           UserRepository userRepository,
+                          ProductRepository productRepository,
+                          LicenseTypeRepository licenseTypeRepository,
+                          DeviceRepository deviceRepository,
+                          DeviceLicenseRepository deviceLicenseRepository,
+                          LicenseHistoryRepository licenseHistoryRepository,
                           DigitalSignatureService digitalSignatureService) {
         this.licenseRepository = licenseRepository;
         this.userRepository = userRepository;
+        this.productRepository = productRepository;
+        this.licenseTypeRepository = licenseTypeRepository;
+        this.deviceRepository = deviceRepository;
+        this.deviceLicenseRepository = deviceLicenseRepository;
+        this.licenseHistoryRepository = licenseHistoryRepository;
         this.digitalSignatureService = digitalSignatureService;
     }
 
-    public License createLicense(Long userId, String deviceId, int validityDays) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new RuntimeException("User not found")
-        );
-        if (deviceId == null || deviceId.isBlank()) {
-            throw new RuntimeException("Device ID is required");
+    @Transactional
+    public License createLicense(Long productId, Long typeId, Long ownerId, int deviceCount,
+                                 String description, String adminUsername) {
+        User admin = getUserByUsername(adminUsername);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> notFound("Product not found"));
+        if (product.isBlocked()) {
+            throw conflict("Product is blocked");
         }
-        if (validityDays <= 0) {
-            throw new RuntimeException("Validity days must be greater than zero");
+        LicenseType type = licenseTypeRepository.findById(typeId)
+                .orElseThrow(() -> notFound("License type not found"));
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> notFound("Owner not found"));
+        if (deviceCount <= 0) {
+            throw conflict("Device count must be greater than zero");
         }
 
         License license = new License();
-        license.setUser(user);
-        license.setDeviceId(deviceId);
-        license.setCreatedAt(Instant.now());
-        license.setValidityDays(validityDays);
+        license.setCode(generateUniqueCode());
+        license.setProduct(product);
+        license.setType(type);
+        license.setOwner(owner);
+        license.setDeviceCount(deviceCount);
+        license.setDescription(description);
         license.setStatus(LicenseStatus.CREATED);
         license.setBlocked(false);
-        return licenseRepository.save(license);
+
+        License saved = licenseRepository.save(license);
+        saveHistory(saved, admin, "CREATED", "License created");
+        return saved;
     }
 
-    public TicketResponse activateLicense(UUID licenseId, int ticketLifetimeSeconds) {
-        License license = licenseRepository.findById(licenseId).orElseThrow(
-                () -> new RuntimeException("License not found")
-        );
-        if (license.isBlocked()) {
-            throw new RuntimeException("License is blocked");
-        }
-        if (license.getStatus() == LicenseStatus.ACTIVE) {
-            throw new RuntimeException("License already active");
+    @Transactional
+    public TicketResponse activateLicense(String activationKey, String deviceMac, String deviceName,
+                                          int ticketLifetimeSeconds, String username) {
+        User currentUser = getUserByUsername(username);
+        License license = getLicenseByCode(activationKey);
+        ensureNotBlocked(license);
+
+        if (license.getUser() != null && !license.getUser().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "License owned by another user");
         }
 
+        Device device = findOrCreateDevice(currentUser, deviceMac, deviceName);
+        boolean alreadyLinked = deviceLicenseRepository.existsByLicenseAndDevice(license, device);
         Instant now = Instant.now();
-        license.setActivatedAt(now);
-        license.setExpiresAt(now.plus(license.getValidityDays(), ChronoUnit.DAYS));
-        license.setStatus(LicenseStatus.ACTIVE);
-        licenseRepository.save(license);
 
-        return buildTicketResponse(license, ticketLifetimeSeconds);
-    }
-
-    public TicketResponse checkLicense(UUID licenseId, int ticketLifetimeSeconds) {
-        License license = licenseRepository.findById(licenseId).orElseThrow(
-                () -> new RuntimeException("License not found")
-        );
-
-        if (license.isBlocked()) {
-            license.setStatus(LicenseStatus.BLOCKED);
-            licenseRepository.save(license);
-        } else if (license.getExpiresAt() != null && license.getExpiresAt().isBefore(Instant.now())) {
-            license.setStatus(LicenseStatus.EXPIRED);
+        if (license.getUser() == null) {
+            license.setUser(currentUser);
+            license.setFirstActivationDate(now);
+            license.setEndingDate(now.plus(license.getType().getDefaultDurationInDays(), ChronoUnit.DAYS));
+            license.setStatus(LicenseStatus.ACTIVE);
             licenseRepository.save(license);
         }
 
-        return buildTicketResponse(license, ticketLifetimeSeconds);
+        if (!alreadyLinked) {
+            long activatedDevices = deviceLicenseRepository.countByLicense(license);
+            if (activatedDevices >= license.getDeviceCount()) {
+                throw conflict("Device limit reached");
+            }
+            DeviceLicense deviceLicense = new DeviceLicense();
+            deviceLicense.setLicense(license);
+            deviceLicense.setDevice(device);
+            deviceLicense.setActivationDate(now);
+            deviceLicenseRepository.save(deviceLicense);
+        }
+
+        saveHistory(license, currentUser, "ACTIVATED", "License activated for device " + device.getMacAddress());
+        return buildTicketResponse(license, device, ticketLifetimeSeconds);
     }
 
-    public TicketResponse extendLicense(UUID licenseId, int additionalDays, int ticketLifetimeSeconds) {
-        License license = licenseRepository.findById(licenseId).orElseThrow(
-                () -> new RuntimeException("License not found")
-        );
-        if (license.isBlocked()) {
-            throw new RuntimeException("License is blocked");
+    @Transactional
+    public TicketResponse renewLicense(String activationKey, int ticketLifetimeSeconds, String username) {
+        User currentUser = getUserByUsername(username);
+        License license = getLicenseByCode(activationKey);
+        ensureNotBlocked(license);
+
+        if (license.getUser() != null && !license.getUser().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "License owned by another user");
         }
-        if (license.getActivatedAt() == null) {
-            throw new RuntimeException("License must be activated before extension");
-        }
-        if (additionalDays <= 0) {
-            throw new RuntimeException("Extension days must be greater than zero");
+        if (license.getUser() == null && !license.getOwner().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owner can renew inactive license");
         }
 
         Instant now = Instant.now();
-        Instant expiresAt = license.getExpiresAt();
-        if (expiresAt == null || expiresAt.isBefore(now)) {
-            license.setExpiresAt(now.plus(additionalDays, ChronoUnit.DAYS));
-        } else {
-            license.setExpiresAt(expiresAt.plus(additionalDays, ChronoUnit.DAYS));
+        Instant endingDate = license.getEndingDate();
+        boolean renewAllowed = endingDate == null || !endingDate.isAfter(now.plus(7, ChronoUnit.DAYS));
+        if (!renewAllowed) {
+            throw conflict("License cannot be renewed yet");
         }
-        license.setStatus(LicenseStatus.ACTIVE);
-        licenseRepository.save(license);
 
-        return buildTicketResponse(license, ticketLifetimeSeconds);
+        int duration = license.getType().getDefaultDurationInDays();
+        Instant renewedUntil = endingDate == null || endingDate.isBefore(now)
+                ? now.plus(duration, ChronoUnit.DAYS)
+                : endingDate.plus(duration, ChronoUnit.DAYS);
+        license.setEndingDate(renewedUntil);
+        if (license.getUser() != null) {
+            license.setStatus(LicenseStatus.ACTIVE);
+        }
+        licenseRepository.save(license);
+        saveHistory(license, currentUser, "RENEWED", "License renewed");
+
+        Device device = deviceRepository.findByMacAddress("renewal")
+                .orElse(null);
+        return buildTicketResponse(license, device, ticketLifetimeSeconds);
     }
 
-    private TicketResponse buildTicketResponse(License license, int ticketLifetimeSeconds) {
+    @Transactional(readOnly = true)
+    public TicketResponse checkLicense(String deviceMac, Long productId, int ticketLifetimeSeconds, String username) {
+        User currentUser = getUserByUsername(username);
+        Device device = deviceRepository.findByMacAddress(normalizeRequired(deviceMac, "Device MAC is required"))
+                .orElseThrow(() -> notFound("Device not found"));
+        if (!device.getUser().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Device belongs to another user");
+        }
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> notFound("Product not found"));
+
+        License license = licenseRepository.findActiveByDeviceUserAndProduct(device.getId(), currentUser, product, Instant.now())
+                .orElseThrow(() -> notFound("License not found"));
+        return buildTicketResponse(license, device, ticketLifetimeSeconds);
+    }
+
+    private User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> notFound("User not found"));
+    }
+
+    private License getLicenseByCode(String activationKey) {
+        return licenseRepository.findByCode(normalizeRequired(activationKey, "Activation key is required"))
+                .orElseThrow(() -> notFound("License not found"));
+    }
+
+    private Device findOrCreateDevice(User user, String deviceMac, String deviceName) {
+        String mac = normalizeRequired(deviceMac, "Device MAC is required");
+        return deviceRepository.findByMacAddress(mac).map(device -> {
+            if (!device.getUser().getId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Device belongs to another user");
+            }
+            return device;
+        }).orElseGet(() -> {
+            Device device = new Device();
+            device.setUser(user);
+            device.setMacAddress(mac);
+            device.setName(deviceName == null || deviceName.isBlank() ? mac : deviceName);
+            return deviceRepository.save(device);
+        });
+    }
+
+    private void ensureNotBlocked(License license) {
+        if (license.isBlocked() || license.getStatus() == LicenseStatus.BLOCKED) {
+            throw conflict("License is blocked");
+        }
+        if (license.getProduct().isBlocked()) {
+            throw conflict("Product is blocked");
+        }
+    }
+
+    private void saveHistory(License license, User user, String status, String description) {
+        LicenseHistory history = new LicenseHistory();
+        history.setLicense(license);
+        history.setUser(user);
+        history.setStatus(status);
+        history.setChangeDate(Instant.now());
+        history.setDescription(description);
+        licenseHistoryRepository.save(history);
+    }
+
+    private TicketResponse buildTicketResponse(License license, Device device, int ticketLifetimeSeconds) {
         Ticket ticket = new Ticket();
         ticket.setServerDate(Instant.now());
         ticket.setTicketLifetimeSeconds(ticketLifetimeSeconds);
-        ticket.setActivationDate(license.getActivatedAt());
-        ticket.setExpirationDate(license.getExpiresAt());
-        ticket.setUserId(license.getUser().getId());
-        ticket.setDeviceId(license.getDeviceId());
+        ticket.setActivationDate(license.getFirstActivationDate());
+        ticket.setExpirationDate(license.getEndingDate());
+        ticket.setLicenseCode(license.getCode());
+        ticket.setProductId(license.getProduct().getId());
+        ticket.setUserId(license.getUser() == null ? null : license.getUser().getId());
+        ticket.setDeviceId(device == null ? null : device.getMacAddress());
         ticket.setBlocked(license.isBlocked());
 
         String signature = digitalSignatureService.signTicket(ticket);
         return new TicketResponse(ticket, signature);
+    }
+
+    private String generateUniqueCode() {
+        String code;
+        do {
+            code = randomGroup() + "-" + randomGroup() + "-" + randomGroup() + "-" + randomGroup();
+        } while (licenseRepository.existsByCode(code));
+        return code;
+    }
+
+    private String randomGroup() {
+        StringBuilder result = new StringBuilder(4);
+        for (int i = 0; i < 4; i++) {
+            result.append(CODE_ALPHABET.charAt(RANDOM.nextInt(CODE_ALPHABET.length())));
+        }
+        return result.toString();
+    }
+
+    private String normalizeRequired(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw conflict(message);
+        }
+        return value.trim();
+    }
+
+    private ResponseStatusException notFound(String message) {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND, message);
+    }
+
+    private ResponseStatusException conflict(String message) {
+        return new ResponseStatusException(HttpStatus.CONFLICT, message);
     }
 }

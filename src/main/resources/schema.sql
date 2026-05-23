@@ -19,21 +19,102 @@ create table if not exists user_sessions(
 create index if not exists idx_user_sessions_refresh on user_sessions(refresh_token);
 create index if not exists idx_user_sessions_username on user_sessions(username);
 
+create table if not exists product(
+    id bigserial primary key,
+    name varchar(255) not null unique,
+    blocked boolean not null default false
+);
+
+create table if not exists license_type(
+    id bigserial primary key,
+    name varchar(100) not null unique,
+    default_duration_in_days integer not null,
+    description varchar(1000)
+);
+
 create table if not exists licenses(
     id uuid primary key,
-    user_id bigint not null,
-    device_id varchar(100) not null,
-    created_at timestamp not null,
-    activated_at timestamp,
-    expires_at timestamp,
-    validity_days integer not null,
+    code varchar(64) not null unique,
+    product_id bigint not null,
+    type_id bigint not null,
+    owner_id bigint not null,
+    user_id bigint,
+    first_activation_date timestamp,
+    ending_date timestamp,
+    device_count integer not null,
+    description varchar(1000),
     status varchar(20) not null,
     blocked boolean not null default false,
+    constraint fk_license_product foreign key(product_id) references product(id),
+    constraint fk_license_type foreign key(type_id) references license_type(id),
+    constraint fk_license_owner foreign key(owner_id) references users(id),
     constraint fk_license_user foreign key(user_id) references users(id)
 );
 
-create index if not exists idx_licenses_user_device on licenses(user_id, device_id);
+create table if not exists device(
+    id bigserial primary key,
+    name varchar(255) not null,
+    mac_address varchar(255) not null unique,
+    user_id bigint not null,
+    constraint fk_device_user foreign key(user_id) references users(id)
+);
+
+create table if not exists device_license(
+    id bigserial primary key,
+    license_id uuid not null,
+    device_id bigint not null,
+    activation_date timestamp not null,
+    constraint fk_device_license_license foreign key(license_id) references licenses(id),
+    constraint fk_device_license_device foreign key(device_id) references device(id),
+    constraint uq_device_license unique(license_id, device_id)
+);
+
+create table if not exists license_history(
+    id bigserial primary key,
+    license_id uuid not null,
+    user_id bigint not null,
+    status varchar(40) not null,
+    change_date timestamp not null,
+    description varchar(1000),
+    constraint fk_license_history_license foreign key(license_id) references licenses(id),
+    constraint fk_license_history_user foreign key(user_id) references users(id)
+);
+
+alter table if exists licenses add column if not exists code varchar(64);
+alter table if exists licenses add column if not exists product_id bigint;
+alter table if exists licenses add column if not exists type_id bigint;
+alter table if exists licenses add column if not exists owner_id bigint;
+alter table if exists licenses add column if not exists first_activation_date timestamp;
+alter table if exists licenses add column if not exists ending_date timestamp;
+alter table if exists licenses add column if not exists device_count integer;
+alter table if exists licenses add column if not exists description varchar(1000);
+
+create index if not exists idx_licenses_code on licenses(code);
+create index if not exists idx_licenses_user_product on licenses(user_id, product_id);
 create index if not exists idx_licenses_status on licenses(status);
+create index if not exists idx_device_mac on device(mac_address);
+create index if not exists idx_device_license_license on device_license(license_id);
+create index if not exists idx_license_history_license on license_history(license_id);
+
+insert into product(name, blocked)
+select 'ZIOVPO Antivirus', false
+where not exists (select 1 from product where name = 'ZIOVPO Antivirus');
+
+insert into license_type(name, default_duration_in_days, description)
+select 'TRIAL', 7, 'Trial license'
+where not exists (select 1 from license_type where name = 'TRIAL');
+
+insert into license_type(name, default_duration_in_days, description)
+select 'MONTH', 30, 'Monthly license'
+where not exists (select 1 from license_type where name = 'MONTH');
+
+insert into license_type(name, default_duration_in_days, description)
+select 'YEAR', 365, 'Yearly license'
+where not exists (select 1 from license_type where name = 'YEAR');
+
+insert into license_type(name, default_duration_in_days, description)
+select 'CORPORATE', 365, 'Corporate license'
+where not exists (select 1 from license_type where name = 'CORPORATE');
 
 create table if not exists antivirus_signatures(
     id uuid primary key,
