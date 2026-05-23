@@ -38,6 +38,18 @@ public class AntivirusSignature {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column(length = 512)
+    private String fileObjectKey;
+
+    private String fileOriginalName;
+
+    private String fileContentType;
+
+    private Long fileSize;
+
+    @Column(length = 64)
+    private String fileSha256;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -64,4 +76,19 @@ public class AntivirusSignature {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getFileObjectKey() { return fileObjectKey; }
+    public void setFileObjectKey(String fileObjectKey) { this.fileObjectKey = fileObjectKey; }
+
+    public String getFileOriginalName() { return fileOriginalName; }
+    public void setFileOriginalName(String fileOriginalName) { this.fileOriginalName = fileOriginalName; }
+
+    public String getFileContentType() { return fileContentType; }
+    public void setFileContentType(String fileContentType) { this.fileContentType = fileContentType; }
+
+    public Long getFileSize() { return fileSize; }
+    public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+
+    public String getFileSha256() { return fileSha256; }
+    public void setFileSha256(String fileSha256) { this.fileSha256 = fileSha256; }
 }

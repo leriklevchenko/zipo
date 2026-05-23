@@ -76,3 +76,18 @@ create table if not exists signature_audit(
 );
 
 create index if not exists idx_signature_audit_signature on signature_audit(signature_id);
+
+alter table if exists antivirus_signatures
+    add column if not exists file_object_key varchar(512);
+
+alter table if exists antivirus_signatures
+    add column if not exists file_original_name varchar(255);
+
+alter table if exists antivirus_signatures
+    add column if not exists file_content_type varchar(255);
+
+alter table if exists antivirus_signatures
+    add column if not exists file_size bigint;
+
+alter table if exists antivirus_signatures
+    add column if not exists file_sha256 varchar(64);

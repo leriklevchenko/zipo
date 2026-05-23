@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ziovpo-postgres
+    environment:
+      POSTGRES_DB: ziovpo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ziovpo-postgres-data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: ziovpo-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ziovpo-root}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ziovpo-root-password-12345}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ziovpo-minio-data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ziovpo-root}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ziovpo-root-password-12345}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ziovpo-signature-files}
+      MINIO_APP_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ziovpo-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_SECRET_KEY:-ziovpo-app-secret-12345}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do sleep 2; done;
+      mc mb --ignore-existing local/$${MINIO_BUCKET};
+      mc anonymous set none local/$${MINIO_BUCKET};
+      mc admin user add local $${MINIO_APP_ACCESS_KEY} $${MINIO_APP_SECRET_KEY} || true;
+      mc admin policy attach local readwrite --user $${MINIO_APP_ACCESS_KEY};
+      "
+
+volumes:
+  ziovpo-postgres-data:
+  ziovpo-minio-data:

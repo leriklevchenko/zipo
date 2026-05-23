@@ -53,6 +53,40 @@ public class AntivirusSignatureService {
         return mapSignature(saved);
     }
 
+    public AntivirusSignatureResponse createFromFile(String name,
+                                                     String version,
+                                                     String description,
+                                                     StoredSignatureFile file,
+                                                     String username) {
+        requireText(name, "Signature name is required");
+        requireText(version, "Signature version is required");
+        if (file == null) {
+            throw new RuntimeException("Signature source file is required");
+        }
+
+        Instant now = Instant.now();
+        AntivirusSignature signature = new AntivirusSignature();
+        signature.setName(name);
+        signature.setVersion(version);
+        signature.setPattern(file.getSha256());
+        signature.setDescription(description);
+        signature.setStatus(AntivirusSignatureStatus.ACTIVE);
+        signature.setCreatedAt(now);
+        signature.setUpdatedAt(now);
+        signature.setFileObjectKey(file.getObjectKey());
+        signature.setFileOriginalName(file.getOriginalName());
+        signature.setFileContentType(file.getContentType());
+        signature.setFileSize(file.getSize());
+        signature.setFileSha256(file.getSha256());
+        signature.setDigitalSignature("pending");
+
+        AntivirusSignature saved = signatureRepository.save(signature);
+        saved.setDigitalSignature(sign(saved));
+        saved = signatureRepository.save(saved);
+        writeAudit(saved.getId(), SignatureAuditAction.CREATE, username, now);
+        return mapSignature(saved);
+    }
+
     public AntivirusSignatureResponse get(UUID id) {
         return mapSignature(findSignature(id));
     }
@@ -178,7 +212,12 @@ public class AntivirusSignatureService {
                 + "\"description\":\"" + escapeJson(signature.getDescription()) + "\","
                 + "\"status\":\"" + signature.getStatus() + "\","
                 + "\"createdAt\":" + toEpochMillis(signature.getCreatedAt()) + ","
-                + "\"updatedAt\":" + toEpochMillis(signature.getUpdatedAt())
+                + "\"updatedAt\":" + toEpochMillis(signature.getUpdatedAt()) + ","
+                + "\"fileObjectKey\":\"" + escapeJson(signature.getFileObjectKey()) + "\","
+                + "\"fileOriginalName\":\"" + escapeJson(signature.getFileOriginalName()) + "\","
+                + "\"fileContentType\":\"" + escapeJson(signature.getFileContentType()) + "\","
+                + "\"fileSize\":" + nullableNumber(signature.getFileSize()) + ","
+                + "\"fileSha256\":\"" + escapeJson(signature.getFileSha256()) + "\""
                 + "}";
         return payload.getBytes(StandardCharsets.UTF_8);
     }
@@ -194,6 +233,11 @@ public class AntivirusSignatureService {
         response.setDigitalSignature(signature.getDigitalSignature());
         response.setCreatedAt(signature.getCreatedAt());
         response.setUpdatedAt(signature.getUpdatedAt());
+        response.setFileObjectKey(signature.getFileObjectKey());
+        response.setFileOriginalName(signature.getFileOriginalName());
+        response.setFileContentType(signature.getFileContentType());
+        response.setFileSize(signature.getFileSize());
+        response.setFileSha256(signature.getFileSha256());
         return response;
     }
 
@@ -234,6 +278,10 @@ public class AntivirusSignatureService {
 
     private String toEpochMillis(Instant value) {
         return value != null ? String.valueOf(value.toEpochMilli()) : "null";
+    }
+
+    private String nullableNumber(Number value) {
+        return value != null ? value.toString() : "null";
     }
 
     private String escapeJson(String value) {

@@ -21,6 +21,14 @@ eds:
     alias: ${EDS_KEY_ALIAS:license-signing}
   signature-algorithm: ${EDS_SIGNATURE_ALGORITHM:SHA256withRSA}
 
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:${MINIO_ENDPOINT:http://localhost:9000}}
+  access-key: ${MINIO_ACCESS_KEY:ziovpo-app}
+  secret-key: ${MINIO_SECRET_KEY:ziovpo-app-secret-12345}
+  bucket: ${MINIO_BUCKET:ziovpo-signature-files}
+  presigned-url-expiration-seconds: ${MINIO_PRESIGNED_URL_EXPIRATION_SECONDS:3600}
+
 server:
   port: 8080
   ssl:

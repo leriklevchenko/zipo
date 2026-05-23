@@ -15,6 +15,13 @@ eds:
     key-password: changeit
     alias: license-signing
   signature-algorithm: SHA256withRSA
+minio:
+  endpoint: http://localhost:9000
+  public-endpoint: http://localhost:9000
+  access-key: ziovpo-app
+  secret-key: ziovpo-app-secret-12345
+  bucket: ziovpo-signature-files
+  presigned-url-expiration-seconds: 3600
 server:
   ssl:
     enabled: false

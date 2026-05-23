@@ -115,6 +115,11 @@
       "key": "signatureDigitalSignature",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "signatureFileId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1065,6 +1070,133 @@
                   "key": "since",
                   "value": "{{signatureSince}}"
                 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature File - Upload And Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Signature file uploaded and signature created', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.pattern).to.be.a('string').and.length(64);",
+                  "  pm.expect(json.fileObjectKey).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.fileSha256).to.eql(json.pattern);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('signatureFileId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "name",
+                  "value": "Uploaded Signature File",
+                  "type": "text"
+                },
+                {
+                  "key": "version",
+                  "value": "1.0",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Created from uploaded file",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/signatures/files",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "signatures",
+                "files"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature File - Pre-Signed URLs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Pre-signed URLs returned for uploaded signature files', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.urls).to.be.an('array');",
+                  "  pm.expect(json.urls.length).to.be.at.least(1);",
+                  "  pm.expect(json.urls[0].url).to.include('X-Amz-Signature');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signatureIds\": [\"{{signatureFileId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/signatures/files/presigned-urls",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "signatures",
+                "files",
+                "presigned-urls"
               ]
             }
           }
