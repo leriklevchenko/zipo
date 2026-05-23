@@ -64,6 +64,14 @@ public class DigitalSignatureService {
         return verifyData(canonicalTicketPayload(ticket), signatureValue);
     }
 
+    public String signManifest(byte[] manifestPayload) {
+        return signData(manifestPayload);
+    }
+
+    public boolean verifyManifest(byte[] manifestPayload, String signatureValue) {
+        return verifyData(manifestPayload, signatureValue);
+    }
+
     public String signData(byte[] payload) {
         try {
             Signature signature = Signature.getInstance(signatureAlgorithm);

@@ -982,6 +982,92 @@
               ]
             }
           }
+        },
+        {
+          "name": "Signature Binary - Full Export",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Binary full export returns multipart/mixed', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('multipart/mixed');",
+                  "  pm.expect(pm.response.headers.get('X-Signature-Record-Count')).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/binary/full",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "binary",
+                "full"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature Binary - Incremental Export",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Binary incremental export returns multipart/mixed', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('multipart/mixed');",
+                  "  pm.expect(pm.response.headers.get('X-Signature-Record-Count')).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/binary/incremental?since={{signatureSince}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "binary",
+                "incremental"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "{{signatureSince}}"
+                }
+              ]
+            }
+          }
         }
       ]
     }
