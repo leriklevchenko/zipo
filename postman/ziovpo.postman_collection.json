@@ -1,248 +1,481 @@
 {
   "info": {
     "name": "ZIoVPO Server",
+    "description": "Postman collection for ZIoVPO Server API. Import it, set base_url and credentials, then run Auth - Login before protected requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "https://localhost:8080"
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "yourpassword",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "deviceId",
+      "value": "postman-device",
+      "type": "string"
+    },
+    {
+      "key": "validityDays",
+      "value": "30",
+      "type": "string"
+    },
+    {
+      "key": "additionalDays",
+      "value": "30",
+      "type": "string"
+    },
+    {
+      "key": "ticketLifetimeSeconds",
+      "value": "900",
+      "type": "string"
     },
     {
       "key": "access_token",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "refresh_token",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "licenseId",
-      "value": ""
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Auth - Login",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"username\": \"user@example.com\",\n  \"password\": \"yourpassword\",\n  \"deviceId\": \"postman\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/auth/login",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "auth",
-            "login"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Auth - Refresh",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/auth/refresh",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "auth",
-            "refresh"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Public - Ping",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{base_url}}/api/public/ping",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "public",
-            "ping"
-          ]
-        }
-      }
-    },
-    {
-      "name": "WhoAmI",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/whoami",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "whoami"
-          ]
-        }
-      }
-    },
-    {
-      "name": "License - Create",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"userId\": 1,\n  \"deviceId\": \"device-123\",\n  \"validityDays\": 30\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/user/license/create",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "user",
-            "license",
-            "create"
-          ]
-        }
-      }
-    },
-    {
-      "name": "License - Activate",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"licenseId\": \"{{licenseId}}\",\n  \"ticketLifetimeSeconds\": 900\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/user/license/activate",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "user",
-            "license",
-            "activate"
-          ]
-        }
-      }
-    },
-    {
-      "name": "License - Check",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/user/license/check?licenseId={{licenseId}}&ticketLifetimeSeconds=900",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "api",
-            "user",
-            "license",
-            "check"],
-          "query": [
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Auth - Login",
+          "event": [
             {
-              "key": "licenseId",
-              "value": "{{licenseId}}"
-            },
-            {
-              "key": "ticketLifetimeSeconds",
-              "value": "900"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login returns tokens', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.refreshToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('access_token', json.accessToken);",
+                  "}",
+                  "if (json.refreshToken) {",
+                  "  pm.collectionVariables.set('refresh_token', json.refreshToken);",
+                  "}"
+                ]
+              }
             }
-          ]
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"deviceId\": \"{{deviceId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Refresh returns new tokens', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.refreshToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('access_token', json.accessToken);",
+                  "}",
+                  "if (json.refreshToken) {",
+                  "  pm.collectionVariables.set('refresh_token', json.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "License - Extend",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{access_token}}"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"licenseId\": \"{{licenseId}}\",\n  \"additionalDays\": 30,\n  \"ticketLifetimeSeconds\": 900\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/user/license/extend",
-          "host": [
-            "{{base_url}}"
+      "name": "Public",
+      "item": [
+        {
+          "name": "Public - Ping",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ping is available', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "api",
-            "user",
-            "license",
-            "extend"
-          ]
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/public/ping",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "ping"
+              ]
+            }
+          }
         }
-      }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "WhoAmI",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('WhoAmI is authorized', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/whoami",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whoami"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "License",
+      "item": [
+        {
+          "name": "License - Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('License created', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.userId).to.eql(Number(pm.collectionVariables.get('userId')));",
+                  "  pm.expect(json.deviceId).to.eql(pm.collectionVariables.get('deviceId'));",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('licenseId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"deviceId\": \"{{deviceId}}\",\n  \"validityDays\": {{validityDays}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/license/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "license",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "License - Activate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('License activated and ticket returned', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.ticket).to.be.an('object');",
+                  "  pm.expect(json.signature).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.ticket.userId).to.eql(Number(pm.collectionVariables.get('userId')));",
+                  "  pm.expect(json.ticket.deviceId).to.eql(pm.collectionVariables.get('deviceId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licenseId\": \"{{licenseId}}\",\n  \"ticketLifetimeSeconds\": {{ticketLifetimeSeconds}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/license/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "license",
+                "activate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "License - Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('License checked and ticket returned', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.ticket).to.be.an('object');",
+                  "  pm.expect(json.signature).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/license/check?licenseId={{licenseId}}&ticketLifetimeSeconds={{ticketLifetimeSeconds}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "license",
+                "check"
+              ],
+              "query": [
+                {
+                  "key": "licenseId",
+                  "value": "{{licenseId}}"
+                },
+                {
+                  "key": "ticketLifetimeSeconds",
+                  "value": "{{ticketLifetimeSeconds}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "License - Extend",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('License extended and ticket returned', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.ticket).to.be.an('object');",
+                  "  pm.expect(json.signature).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licenseId\": \"{{licenseId}}\",\n  \"additionalDays\": {{additionalDays}},\n  \"ticketLifetimeSeconds\": {{ticketLifetimeSeconds}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/license/extend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "license",
+                "extend"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
