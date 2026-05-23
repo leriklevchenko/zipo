@@ -12,6 +12,15 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+eds:
+  keystore:
+    base64: ${EDS_KEYSTORE_BASE64:}
+    location: ${EDS_KEYSTORE_LOCATION:}
+    password: ${EDS_KEYSTORE_PASSWORD}
+    key-password: ${EDS_KEY_PASSWORD:${EDS_KEYSTORE_PASSWORD}}
+    alias: ${EDS_KEY_ALIAS:license-signing}
+  signature-algorithm: ${EDS_SIGNATURE_ALGORITHM:SHA256withRSA}
+
 server:
   port: 8080
   ssl:

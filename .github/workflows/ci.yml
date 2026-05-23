@@ -18,6 +18,10 @@ jobs:
       PG_PASS: ${{ secrets.PG_PASS }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       TLS_KEYSTORE_PASSWORD: ${{ secrets.TLS_KEYSTORE_PASSWORD }}
+      EDS_KEYSTORE_BASE64: ${{ secrets.EDS_KEYSTORE_BASE64 }}
+      EDS_KEYSTORE_PASSWORD: ${{ secrets.EDS_KEYSTORE_PASSWORD }}
+      EDS_KEY_PASSWORD: ${{ secrets.EDS_KEY_PASSWORD }}
+      EDS_KEY_ALIAS: ${{ secrets.EDS_KEY_ALIAS }}
 
     steps:
       - name: Checkout repository

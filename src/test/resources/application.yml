@@ -8,6 +8,13 @@ spring:
       ddl-auto: create-drop
 jwt:
   secret: test-secret-key-test-secret-key-test-secret-key
+eds:
+  keystore:
+    location: classpath:eds/test-eds.p12
+    password: changeit
+    key-password: changeit
+    alias: license-signing
+  signature-algorithm: SHA256withRSA
 server:
   ssl:
     enabled: false

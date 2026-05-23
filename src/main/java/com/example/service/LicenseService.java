@@ -5,14 +5,13 @@ import com.example.model.LicenseStatus;
 import com.example.model.Ticket;
 import com.example.model.TicketResponse;
 import com.example.model.User;
-import com.example.security.JwtTokenProvider;
+import com.example.signature.DigitalSignatureService;
 import com.example.storage.LicenseRepository;
 import com.example.storage.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,14 +19,14 @@ public class LicenseService {
 
     private final LicenseRepository licenseRepository;
     private final UserRepository userRepository;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final DigitalSignatureService digitalSignatureService;
 
     public LicenseService(LicenseRepository licenseRepository,
                           UserRepository userRepository,
-                          JwtTokenProvider jwtTokenProvider) {
+                          DigitalSignatureService digitalSignatureService) {
         this.licenseRepository = licenseRepository;
         this.userRepository = userRepository;
-        this.jwtTokenProvider = jwtTokenProvider;
+        this.digitalSignatureService = digitalSignatureService;
     }
 
     public License createLicense(Long userId, String deviceId, int validityDays) {
@@ -124,7 +123,7 @@ public class LicenseService {
         ticket.setDeviceId(license.getDeviceId());
         ticket.setBlocked(license.isBlocked());
 
-        String signature = jwtTokenProvider.createTicketSignature(ticket);
+        String signature = digitalSignatureService.signTicket(ticket);
         return new TicketResponse(ticket, signature);
     }
 }

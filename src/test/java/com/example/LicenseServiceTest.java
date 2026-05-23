@@ -3,6 +3,7 @@ package com.example;
 import com.example.model.License;
 import com.example.model.TicketResponse;
 import com.example.model.User;
+import com.example.signature.DigitalSignatureService;
 import com.example.service.LicenseService;
 import com.example.storage.LicenseRepository;
 import com.example.storage.UserRepository;
@@ -27,6 +28,9 @@ class LicenseServiceTest {
 
     @Autowired
     private LicenseRepository licenseRepository;
+
+    @Autowired
+    private DigitalSignatureService digitalSignatureService;
 
     private User testUser;
 
@@ -58,6 +62,7 @@ class LicenseServiceTest {
         TicketResponse activated = licenseService.activateLicense(license.getId(), 900);
         assertNotNull(activated.getTicket());
         assertNotNull(activated.getSignature());
+        assertTrue(digitalSignatureService.verifyTicket(activated.getTicket(), activated.getSignature()));
         assertEquals(testUser.getId(), activated.getTicket().getUserId());
         assertEquals("device-1", activated.getTicket().getDeviceId());
         assertFalse(activated.getTicket().isBlocked());
