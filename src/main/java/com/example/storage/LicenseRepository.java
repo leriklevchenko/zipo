@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,9 +25,10 @@ public interface LicenseRepository extends JpaRepository<License, UUID> {
               and l.product = :product
               and l.blocked = false
               and l.endingDate >= :now
+            order by l.endingDate desc
             """)
-    Optional<License> findActiveByDeviceUserAndProduct(@Param("deviceId") Long deviceId,
-                                                       @Param("user") User user,
-                                                       @Param("product") Product product,
-                                                       @Param("now") Instant now);
+    List<License> findActiveByDeviceUserAndProduct(@Param("deviceId") Long deviceId,
+                                                   @Param("user") User user,
+                                                   @Param("product") Product product,
+                                                   @Param("now") Instant now);
 }

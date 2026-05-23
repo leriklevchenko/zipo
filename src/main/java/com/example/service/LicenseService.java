@@ -164,6 +164,8 @@ public class LicenseService {
                 .orElseThrow(() -> notFound("Product not found"));
 
         License license = licenseRepository.findActiveByDeviceUserAndProduct(device.getId(), currentUser, product, Instant.now())
+                .stream()
+                .findFirst()
                 .orElseThrow(() -> notFound("License not found"));
         return buildTicketResponse(license, device, ticketLifetimeSeconds);
     }
