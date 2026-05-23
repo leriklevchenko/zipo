@@ -22,6 +22,16 @@
       "type": "string"
     },
     {
+      "key": "admin_username",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "yourpassword",
+      "type": "string"
+    },
+    {
       "key": "userId",
       "value": "1",
       "type": "string"
@@ -57,7 +67,52 @@
       "type": "string"
     },
     {
+      "key": "admin_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "licenseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "signatureId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "signatureName",
+      "value": "EICAR-Test-Signature",
+      "type": "string"
+    },
+    {
+      "key": "signatureVersion",
+      "value": "1.0.0",
+      "type": "string"
+    },
+    {
+      "key": "signaturePattern",
+      "value": "X5O!P%@AP[4\\\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*",
+      "type": "string"
+    },
+    {
+      "key": "signatureDescription",
+      "value": "Postman test antivirus signature",
+      "type": "string"
+    },
+    {
+      "key": "signatureSince",
+      "value": "2020-01-01T00:00:00Z",
+      "type": "string"
+    },
+    {
+      "key": "signatureDigitalSignature",
       "value": "",
       "type": "string"
     }
@@ -103,6 +158,62 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"deviceId\": \"{{deviceId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin login returns tokens', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.accessToken).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.refreshToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('admin_access_token', json.accessToken);",
+                  "}",
+                  "if (json.refreshToken) {",
+                  "  pm.collectionVariables.set('admin_refresh_token', json.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{admin_username}}\",\n  \"password\": \"{{admin_password}}\",\n  \"deviceId\": \"{{deviceId}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -471,6 +582,403 @@
                 "user",
                 "license",
                 "extend"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Antivirus Signatures",
+      "item": [
+        {
+          "name": "Signature - Create",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('signatureSince', new Date(Date.now() - 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Signature created and signed', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.status).to.eql('ACTIVE');",
+                  "  pm.expect(json.digitalSignature).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('signatureId', json.id);",
+                  "}",
+                  "if (json.digitalSignature) {",
+                  "  pm.collectionVariables.set('signatureDigitalSignature', json.digitalSignature);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{signatureName}}\",\n  \"version\": \"{{signatureVersion}}\",\n  \"pattern\": \"{{signaturePattern}}\",\n  \"description\": \"{{signatureDescription}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/signatures",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "signatures"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - Get By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Signature can be loaded by id', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get('signatureId'));",
+                  "  pm.expect(json.digitalSignature).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/{{signatureId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "{{signatureId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - Update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Signature updated and signature recalculated', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get('signatureId'));",
+                  "  pm.expect(json.version).to.eql('1.0.1');",
+                  "  pm.expect(json.digitalSignature).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.digitalSignature).to.not.eql(pm.collectionVariables.get('signatureDigitalSignature'));",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.digitalSignature) {",
+                  "  pm.collectionVariables.set('signatureDigitalSignature', json.digitalSignature);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{signatureName}}\",\n  \"version\": \"1.0.1\",\n  \"pattern\": \"{{signaturePattern}}-UPDATED\",\n  \"description\": \"Updated from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/signatures/{{signatureId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "signatures",
+                "{{signatureId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - Delete Logical",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Signature deleted logically and signature recalculated', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.eql(pm.collectionVariables.get('signatureId'));",
+                  "  pm.expect(json.status).to.eql('DELETED');",
+                  "  pm.expect(json.digitalSignature).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.digitalSignature).to.not.eql(pm.collectionVariables.get('signatureDigitalSignature'));",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json.digitalSignature) {",
+                  "  pm.collectionVariables.set('signatureDigitalSignature', json.digitalSignature);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/signatures/{{signatureId}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "signatures",
+                "{{signatureId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - Full Export",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Full export does not contain DELETED signatures', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(json.some(function (item) { return item.status === 'DELETED'; })).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/full",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "full"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - Incremental Export",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Incremental export contains records after since, including DELETED', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(json.some(function (item) {",
+                  "    return item.id === pm.collectionVariables.get('signatureId') && item.status === 'DELETED';",
+                  "  })).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/incremental?since={{signatureSince}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "incremental"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "{{signatureSince}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - History By Signature Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('History can be loaded by signatureId', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(json.length).to.be.at.least(2);",
+                  "  pm.expect(json.some(function (item) { return item.action === 'UPDATE'; })).to.eql(true);",
+                  "  pm.expect(json.some(function (item) { return item.action === 'DELETE'; })).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/{{signatureId}}/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "{{signatureId}}",
+                "history"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Signature - Audit By Signature Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Audit can be loaded by signatureId', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.be.an('array');",
+                  "  pm.expect(json.length).to.be.at.least(3);",
+                  "  pm.expect(json.some(function (item) { return item.action === 'CREATE'; })).to.eql(true);",
+                  "  pm.expect(json.some(function (item) { return item.action === 'UPDATE'; })).to.eql(true);",
+                  "  pm.expect(json.some(function (item) { return item.action === 'DELETE'; })).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/signatures/{{signatureId}}/audit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "signatures",
+                "{{signatureId}}",
+                "audit"
               ]
             }
           }

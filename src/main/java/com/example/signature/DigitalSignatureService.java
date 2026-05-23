@@ -57,21 +57,29 @@ public class DigitalSignatureService {
     }
 
     public String signTicket(Ticket ticket) {
-        try {
-            Signature signature = Signature.getInstance(signatureAlgorithm);
-            signature.initSign(privateKey);
-            signature.update(canonicalTicketPayload(ticket));
-            return Base64.getEncoder().encodeToString(signature.sign());
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to sign ticket", e);
-        }
+        return signData(canonicalTicketPayload(ticket));
     }
 
     public boolean verifyTicket(Ticket ticket, String signatureValue) {
+        return verifyData(canonicalTicketPayload(ticket), signatureValue);
+    }
+
+    public String signData(byte[] payload) {
+        try {
+            Signature signature = Signature.getInstance(signatureAlgorithm);
+            signature.initSign(privateKey);
+            signature.update(payload);
+            return Base64.getEncoder().encodeToString(signature.sign());
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to sign payload", e);
+        }
+    }
+
+    public boolean verifyData(byte[] payload, String signatureValue) {
         try {
             Signature signature = Signature.getInstance(signatureAlgorithm);
             signature.initVerify(publicKey);
-            signature.update(canonicalTicketPayload(ticket));
+            signature.update(payload);
             return signature.verify(Base64.getDecoder().decode(signatureValue));
         } catch (Exception e) {
             return false;
